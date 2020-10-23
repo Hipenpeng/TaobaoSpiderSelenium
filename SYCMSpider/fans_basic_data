@@ -1,0 +1,47 @@
+import pymysql
+import pandas as pd
+import os
+# 建立数据库连接
+db = pymysql.connect(
+    user='tsy_cjh',
+    host='192.168.31.252',
+    password='Tsycjh0914$',
+    db='tys',
+    port=3306
+)
+cur = db.cursor()  # 创建游标
+
+sql1 = "delete from fans_basic_data"
+sql2 = "alter table fans_basic_data auto_increment=1"
+cur.execute(sql1)
+cur.execute(sql2)
+db.commit()
+print('重置数据表')
+
+
+os.chdir(r'F:\工作文件夹cjh\MySQL数据源\fans_data')
+file_list = os.listdir()
+
+for i in file_list[2:4]:
+    # print(i)
+    df = pd.read_excel(i,dtype=str)
+    for j in range(len(df.iloc[:,0])):
+        df['ProfileRatio'][j] = float(df['ProfileRatio'][j])*100
+    if i[-6:-5] == 'M':
+        df['store_name'] = 'TM-MHD'
+    elif i[-6:-5] == 'H':
+        df['store_name'] = 'TM-hennessy'
+    # print(df)
+    sql_list = df.values.tolist()
+    try:
+        sql = "insert into fans_basic_data(profileKey,dates,attrName,profileValue,profileRatio,store_name) " \
+              "values (%s,%s,%s,%s,%s,%s)"
+        cur.executemany(sql, sql_list)
+        db.commit()
+        print('sql执行成功')
+    except Exception as e:
+        print(e)
+        db.rollback()
+
+cur.close()
+db.close()
